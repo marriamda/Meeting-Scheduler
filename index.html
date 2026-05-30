@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>When Can You Meet?</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a18;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --accent: #c84b2f;
+    --accent-light: #e8a090;
+    --muted: #8a8578;
+    --border: #d4cfc3;
+    --slot-bg: #fff9f0;
+    --admin: #2b3a52;
+    --admin-light: #4a6fa5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Mono', monospace; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--ink); color: var(--paper); padding: 2.5rem 2rem 2rem; position: relative; overflow: hidden; }
+  header::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg,transparent,transparent 20px,rgba(255,255,255,0.02) 20px,rgba(255,255,255,0.02) 21px); }
+  .header-inner { max-width: 760px; margin: 0 auto; position: relative; }
+  .header-label { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-light); margin-bottom: 0.75rem; }
+  header h1 { font-family: 'Instrument Serif', serif; font-size: clamp(2rem, 6vw, 3.2rem); line-height: 1.1; font-weight: 400; }
+  header h1 em { font-style: italic; color: var(--accent-light); }
+  header p { margin-top: 0.9rem; font-size: 0.78rem; color: #a0998e; max-width: 440px; line-height: 1.7; }
+
+  /* TABS */
+  .tabs { background: var(--cream); border-bottom: 1px solid var(--border); display: flex; max-width: 760px; margin: 0 auto; padding: 0 2rem; }
+  .tab-btn { font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; border: none; background: none; padding: 1rem 1.25rem 0.85rem; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; transition: all 0.2s; margin-bottom: -1px; }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .tab-btn.admin-tab.active { border-bottom-color: var(--admin-light); color: var(--admin); }
+  .tab-btn:hover:not(.active) { color: var(--ink); }
+
+  /* MAIN */
+  main { max-width: 760px; margin: 0 auto; padding: 2rem 2rem 4rem; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* INPUTS */
+  .form-section { margin-bottom: 2rem; }
+  .field-label { font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; display: block; }
+  input[type="text"], input[type="password"], input[type="date"] { font-family: 'DM Mono', monospace; font-size: 0.9rem; background: white; border: 1px solid var(--border); padding: 0.75rem 1rem; width: 100%; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  input[type="text"]:focus, input[type="password"]:focus, input[type="date"]:focus { border-color: var(--accent); }
+
+  /* WEEK GRID */
+  .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 0.4rem; margin-top: 1rem; }
+  .day-card { background: white; border: 1px solid var(--border); padding: 0.6rem 0.3rem; text-align: center; cursor: pointer; transition: all 0.15s; user-select: none; }
+  .day-card:hover { border-color: var(--accent-light); }
+  .day-card.selected { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .day-card.selected .day-name { color: var(--accent-light); }
+  .day-card.weekend { border-color: #b8c8d8; }
+  .day-card.weekend .day-name { color: var(--admin-light); }
+  .day-card.selected.weekend { background: var(--admin); border-color: var(--admin); }
+  .day-name { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: block; }
+  .day-num { font-family: 'Instrument Serif', serif; font-size: 1.4rem; line-height: 1.2; }
+  .day-card.selected .day-num { color: white; }
+  .day-month-label { font-size: 0.55rem; color: var(--muted); display: block; margin-top: 0.1rem; }
+  .day-card.selected .day-month-label { color: #aaa; }
+
+  /* SLOTS */
+  .slots-area { margin-top: 1.25rem; }
+  .day-slots-block { margin-bottom: 1.25rem; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .day-slots-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+  .day-slots-title { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+  .add-slot-btn { font-family: 'DM Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: 1px dashed var(--border); color: var(--muted); padding: 0.3rem 0.7rem; cursor: pointer; transition: all 0.15s; }
+  .add-slot-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .slot-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; background: var(--slot-bg); border: 1px solid var(--border); padding: 0.5rem 0.75rem; }
+  .slot-sep { font-size: 0.7rem; color: var(--muted); }
+  input[type="time"] { font-family: 'DM Mono', monospace; font-size: 0.85rem; border: none; background: transparent; color: var(--ink); outline: none; padding: 0.1rem; flex: 1; }
+  .remove-slot { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 0.2rem; transition: color 0.15s; }
+  .remove-slot:hover { color: var(--accent); }
+
+  /* SUBMIT */
+  .submit-area { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .submit-btn { font-family: 'DM Mono', monospace; font-size: 0.78rem; letter-spacing: 0.15em; text-transform: uppercase; background: var(--accent); color: white; border: none; padding: 1rem 2.5rem; cursor: pointer; transition: background 0.15s; }
+  .submit-btn:hover { background: #a83a20; }
+  .submit-btn:disabled { background: var(--muted); cursor: not-allowed; }
+  .submit-status { font-size: 0.72rem; color: var(--muted); }
+
+  /* SUCCESS */
+  .success-msg { display: none; background: var(--ink); color: var(--paper); padding: 1.5rem; margin-top: 1.5rem; }
+  .success-msg.show { display: block; animation: fadeIn 0.3s ease; }
+  .success-msg .success-title { font-family: 'Instrument Serif', serif; font-size: 1.3rem; color: var(--accent-light); margin-bottom: 0.4rem; }
+  .success-msg p { font-size: 0.78rem; color: #a0998e; }
+
+  /* RESULTS */
+  .results-controls { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+  .results-controls span { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .ctrl-btn { font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--border); background: white; color: var(--ink); padding: 0.4rem 0.85rem; cursor: pointer; transition: all 0.15s; }
+  .ctrl-btn:hover, .ctrl-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .ctrl-btn.danger:hover { background: var(--accent); border-color: var(--accent); color: white; }
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+  .empty-state .big { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .empty-state p { font-size: 0.78rem; line-height: 1.7; }
+
+  /* RESULT CARDS */
+  .result-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .result-card { background: white; border: 1px solid var(--border); padding: 1.25rem 1.5rem; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1.25rem; animation: fadeIn 0.25s ease; }
+  .result-rank { font-family: 'Instrument Serif', serif; font-size: 2rem; color: var(--border); line-height: 1; width: 2rem; text-align: center; }
+  .result-card.rank-1 .result-rank { color: var(--accent); }
+  .result-card.rank-2 .result-rank { color: var(--ink); }
+  .result-card.rank-3 .result-rank { color: var(--muted); }
+  .result-info .result-datetime { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.2rem; }
+  .result-info .result-people { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; }
+  .result-bar-wrap { width: 90px; text-align: right; }
+  .result-bar-bg { height: 6px; background: var(--cream); margin-bottom: 0.3rem; overflow: hidden; }
+  .result-bar-fill { height: 100%; background: var(--accent); transition: width 0.6s cubic-bezier(.23,1,.32,1); }
+  .result-pct { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; }
+
+  /* RESPONSE CARDS */
+  .responses-grid { display: flex; flex-direction: column; gap: 1rem; }
+  .response-card { background: white; border: 1px solid var(--border); padding: 1rem 1.25rem; animation: fadeIn 0.2s ease; }
+  .response-name { font-size: 0.82rem; font-weight: 500; margin-bottom: 0.1rem; }
+  .response-meta { font-size: 0.65rem; color: var(--muted); margin-bottom: 0.75rem; letter-spacing: 0.05em; }
+  .response-slots { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .response-slot-tag { font-size: 0.65rem; background: var(--cream); border: 1px solid var(--border); padding: 0.2rem 0.5rem; letter-spacing: 0.04em; white-space: nowrap; }
+
+  /* SECTION HEADING */
+  .section-heading { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.25rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .section-heading .count-badge { background: var(--ink); color: var(--paper); font-size: 0.6rem; padding: 0.15rem 0.45rem; }
+
+  /* INSTRUCTION */
+  .instruction-box { background: white; border-left: 3px solid var(--accent); padding: 0.85rem 1rem; font-size: 0.75rem; line-height: 1.7; color: var(--muted); margin-bottom: 1.75rem; }
+  .instruction-box strong { color: var(--ink); }
+
+  /* ADMIN */
+  .admin-lock { text-align: center; padding: 3rem 1rem; }
+  .admin-lock h2 { font-family: 'Instrument Serif', serif; font-size: 1.6rem; font-weight: 400; margin-bottom: 0.5rem; color: var(--admin); }
+  .admin-lock p { font-size: 0.75rem; color: var(--muted); margin-bottom: 1.5rem; }
+  .admin-lock input[type="password"] { max-width: 300px; margin: 0 auto 1rem; display: block; }
+  .admin-unlock-btn { font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; background: var(--admin); color: white; border: none; padding: 0.8rem 2rem; cursor: pointer; transition: background 0.15s; }
+  .admin-unlock-btn:hover { background: var(--admin-light); }
+  .admin-error { font-size: 0.72rem; color: var(--accent); margin-top: 0.5rem; display: none; }
+  .admin-panel-content { display: none; }
+  .admin-panel-content.unlocked { display: block; }
+  .admin-header { display: flex; align-items: center; justify-content: space-between; background: var(--admin); color: white; padding: 0.85rem 1.25rem; margin-bottom: 1.75rem; }
+  .admin-header span { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: #8aabcc; }
+  .admin-header strong { font-size: 0.82rem; }
+  .admin-logout { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: 1px solid #4a6fa5; color: #8aabcc; padding: 0.3rem 0.7rem; cursor: pointer; transition: all 0.15s; }
+  .admin-logout:hover { background: #4a6fa5; color: white; }
+  .admin-section { margin-bottom: 2.5rem; }
+  .admin-section-title { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--admin); margin-bottom: 1rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--admin); display: flex; justify-content: space-between; align-items: center; }
+  .managed-days-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+  .managed-day-row { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid var(--border); padding: 0.65rem 1rem; animation: fadeIn 0.2s ease; }
+  .managed-day-info { display: flex; flex-direction: column; }
+  .managed-day-name { font-size: 0.82rem; font-weight: 500; }
+  .managed-day-date { font-size: 0.65rem; color: var(--muted); margin-top: 0.1rem; }
+  .managed-day-badge { font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.15rem 0.45rem; margin-left: 0.5rem; display: inline-block; vertical-align: middle; }
+  .badge-default { background: var(--cream); color: var(--muted); border: 1px solid var(--border); }
+  .badge-added { background: #e8f0d8; color: #4a7a2a; border: 1px solid #b8d898; }
+  .badge-weekend { background: #d8e8f0; color: var(--admin); border: 1px solid #a0c0d8; }
+  .remove-day-btn { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.08em; background: none; border: 1px solid var(--border); color: var(--muted); padding: 0.25rem 0.6rem; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .remove-day-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .add-day-form { background: white; border: 1px solid var(--border); padding: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+  .add-day-form .field-group { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 160px; }
+  .add-day-btn { font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; background: var(--admin); color: white; border: none; padding: 0.75rem 1.5rem; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .add-day-btn:hover { background: var(--admin-light); }
+  .admin-note { font-size: 0.7rem; color: var(--muted); line-height: 1.6; margin-top: 0.75rem; }
+  .admin-note strong { color: var(--ink); }
+
+  @media (max-width: 500px) {
+    main { padding: 1.5rem 1rem 3rem; }
+    .result-card { grid-template-columns: auto 1fr; }
+    .result-bar-wrap { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-label">Group Scheduling Tool</div>
+    <h1>When can <em>you</em> meet?</h1>
+    <p>Tell us which windows work for you — no choices forced, just your honest availability.</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('form', this)">Submit Availability</button>
+  <button class="tab-btn" onclick="switchTab('results', this)">Results & Analysis</button>
+  <button class="tab-btn admin-tab" onclick="switchTab('admin', this)">⚙ Admin</button>
+</div>
+
+<main>
+
+  <!-- FORM PANEL -->
+  <div class="panel active" id="panel-form">
+    <div class="instruction-box">
+      <strong>How it works:</strong> Select the days you're available, then add one or more time windows per day. Submit when done.
+    </div>
+    <div class="form-section">
+      <label class="field-label">Your name</label>
+      <input type="text" id="input-name" placeholder="e.g. Marriam" />
+    </div>
+    <div class="form-section">
+      <label class="field-label">Select days you're available</label>
+      <div class="week-grid" id="week-grid"></div>
+    </div>
+    <div class="slots-area" id="slots-area"></div>
+    <div class="submit-area">
+      <button class="submit-btn" id="submit-btn" onclick="submitForm()">Submit Availability</button>
+      <span class="submit-status" id="submit-status"></span>
+    </div>
+    <div class="success-msg" id="success-msg">
+      <div class="success-title">Submitted — thank you.</div>
+      <p>Your availability has been saved. Check the Results tab once everyone has responded.</p>
+    </div>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div class="panel" id="panel-results">
+    <div class="results-controls">
+      <span>View:</span>
+      <button class="ctrl-btn active" id="btn-top" onclick="showView('top')">Top Slots</button>
+      <button class="ctrl-btn" id="btn-all" onclick="showView('all')">All Responses</button>
+    </div>
+    <div id="view-top"></div>
+    <div id="view-all" style="display:none"></div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="panel" id="panel-admin">
+    <div id="admin-lock-screen" class="admin-lock">
+      <h2>Admin Access</h2>
+      <p>Enter the admin password to manage form days.</p>
+      <input type="password" id="admin-password" placeholder="Password" onkeydown="if(event.key==='Enter')unlockAdmin()" />
+      <br>
+      <button class="admin-unlock-btn" onclick="unlockAdmin()">Unlock</button>
+      <div class="admin-error" id="admin-error">Incorrect password. Try again.</div>
+      <p style="margin-top:1.5rem;font-size:0.68rem;color:var(--muted);">Default password: <strong>admin123</strong></p>
+    </div>
+    <div id="admin-panel-content" class="admin-panel-content">
+      <div class="admin-header">
+        <div><span>Admin Mode</span><br><strong>Form Day Manager</strong></div>
+        <button class="admin-logout" onclick="lockAdmin()">Lock</button>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-title">
+          Active days on the form
+          <span id="day-count-badge" style="font-size:0.65rem;color:var(--muted);font-weight:normal;letter-spacing:0.05em;text-transform:none;"></span>
+        </div>
+        <div class="managed-days-list" id="managed-days-list"></div>
+        <p class="admin-note">Removing a day hides it from the form — existing response data is preserved.</p>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-title">Add a day</div>
+        <div class="add-day-form">
+          <div class="field-group">
+            <label class="field-label">Date</label>
+            <input type="date" id="add-day-date" />
+          </div>
+          <button class="add-day-btn" onclick="adminAddDay()">+ Add Day</button>
+        </div>
+        <p class="admin-note"><strong>Tip:</strong> You can add any date — past, future, or outside the current week.</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG — only line you ever need to change
+// ═══════════════════════════════════════════
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzEY7gnWBhjPlq8C-ux7IkfmXCZoJKWzsDT64Pi1iCEIVLan4m3UIslpXZlBpFMvA_Mw/exec';
+const ADMIN_PASSWORD  = 'admin123';
+const DAYS_KEY        = 'meeting_active_days_v1';
+
+// ═══════════════════════════════════════════
+// DATE HELPERS
+// ═══════════════════════════════════════════
+const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function keyToDate(k) {
+  const [y,m,d] = k.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function fmtDate(d) {
+  return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+}
+function isWeekend(d) {
+  return d.getDay() === 0 || d.getDay() === 6;
+}
+
+// ═══════════════════════════════════════════
+// DEFAULT DAYS: today + 6 days + next Sat & Sun
+// ═══════════════════════════════════════════
+function buildDefaultDays() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const keys = new Set();
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const k = dateKey(d);
+    if (!keys.has(k)) { keys.add(k); days.push({ key: k, custom: false }); }
+  }
+  for (let i = 7; i <= 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    if (isWeekend(d)) {
+      const k = dateKey(d);
+      if (!keys.has(k)) { keys.add(k); days.push({ key: k, custom: false }); }
+    }
+  }
+  return days;
+}
+
+// ═══════════════════════════════════════════
+// ACTIVE DAYS (localStorage for admin config)
+// ═══════════════════════════════════════════
+function loadActiveDays() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(DAYS_KEY));
+    if (stored && Array.isArray(stored) && stored.length > 0) return stored;
+  } catch {}
+  const defaults = buildDefaultDays();
+  saveActiveDays(defaults);
+  return defaults;
+}
+function saveActiveDays(arr) {
+  localStorage.setItem(DAYS_KEY, JSON.stringify(arr));
+}
+
+// ═══════════════════════════════════════════
+// FORM STATE
+// ═══════════════════════════════════════════
+let selectedDays = new Set();
+let slots = {};
+
+// ═══════════════════════════════════════════
+// BUILD WEEK GRID
+// ═══════════════════════════════════════════
+function buildWeekGrid() {
+  const activeDays = loadActiveDays();
+  const grid = document.getElementById('week-grid');
+  grid.innerHTML = '';
+  activeDays.forEach(({ key }) => {
+    const d = keyToDate(key);
+    const card = document.createElement('div');
+    card.className = 'day-card' + (isWeekend(d) ? ' weekend' : '');
+    card.dataset.key = key;
+    card.innerHTML = `
+      <span class="day-name">${DAY_NAMES[d.getDay()]}</span>
+      <span class="day-num">${d.getDate()}</span>
+      <span class="day-month-label">${MONTH_NAMES[d.getMonth()]}</span>`;
+    card.onclick = () => toggleDay(key, card);
+    grid.appendChild(card);
+  });
+}
+
+function toggleDay(key, card) {
+  if (selectedDays.has(key)) {
+    selectedDays.delete(key);
+    card.classList.remove('selected');
+    delete slots[key];
+  } else {
+    selectedDays.add(key);
+    card.classList.add('selected');
+    slots[key] = [{ from: '09:00', to: '17:00' }];
+  }
+  renderSlots();
+}
+
+// ═══════════════════════════════════════════
+// RENDER SLOTS
+// ═══════════════════════════════════════════
+function renderSlots() {
+  const area = document.getElementById('slots-area');
+  area.innerHTML = '';
+  if (selectedDays.size === 0) return;
+  const orderedKeys = loadActiveDays().map(d => d.key).filter(k => selectedDays.has(k));
+  orderedKeys.forEach(key => {
+    const d = keyToDate(key);
+    const block = document.createElement('div');
+    block.className = 'day-slots-block';
+    block.innerHTML = `
+      <div class="day-slots-header">
+        <span class="day-slots-title">${fmtDate(d)}</span>
+        <button class="add-slot-btn" onclick="addSlot('${key}')">+ Add window</button>
+      </div>
+      <div id="slots-${key}"></div>`;
+    area.appendChild(block);
+    renderDaySlots(key);
+  });
+}
+
+function renderDaySlots(key) {
+  const container = document.getElementById(`slots-${key}`);
+  if (!container) return;
+  container.innerHTML = '';
+  (slots[key] || []).forEach((slot, idx) => {
+    const row = document.createElement('div');
+    row.className = 'slot-row';
+    row.innerHTML = `
+      <input type="time" value="${slot.from}" onchange="updateSlot('${key}',${idx},'from',this.value)" />
+      <span class="slot-sep">→</span>
+      <input type="time" value="${slot.to}" onchange="updateSlot('${key}',${idx},'to',this.value)" />
+      <button class="remove-slot" onclick="removeSlot('${key}',${idx})" title="Remove">×</button>`;
+    container.appendChild(row);
+  });
+}
+
+function addSlot(key) {
+  if (!slots[key]) slots[key] = [];
+  const last = slots[key][slots[key].length - 1];
+  const from = last ? last.to : '09:00';
+  const [h, m] = from.split(':').map(Number);
+  const toH = String(Math.min(h + 1, 23)).padStart(2,'0');
+  slots[key].push({ from, to: `${toH}:${String(m).padStart(2,'0')}` });
+  renderDaySlots(key);
+}
+
+function removeSlot(key, idx) {
+  slots[key].splice(idx, 1);
+  if (slots[key].length === 0) {
+    selectedDays.delete(key);
+    document.querySelectorAll('.day-card').forEach(c => {
+      if (c.dataset.key === key) c.classList.remove('selected');
+    });
+    delete slots[key];
+  }
+  renderSlots();
+}
+
+function updateSlot(key, idx, field, value) {
+  if (slots[key] && slots[key][idx]) slots[key][idx][field] = value;
+}
+
+// ═══════════════════════════════════════════
+// SUBMIT → Google Sheets
+// ═══════════════════════════════════════════
+async function submitForm() {
+  const name = document.getElementById('input-name').value.trim();
+  if (!name) { alert('Please enter your name.'); return; }
+  if (selectedDays.size === 0) { alert('Please select at least one day.'); return; }
+  for (const key of selectedDays) {
+    if (!slots[key] || slots[key].length === 0) { alert('Please add at least one time window per selected day.'); return; }
+    for (const s of slots[key]) {
+      if (s.from >= s.to) { alert('Please ensure all time windows have a start time before end time.'); return; }
+    }
+  }
+
+  const entry = { id: Date.now(), name, submittedAt: new Date().toISOString(), availability: {} };
+  for (const key of selectedDays) {
+    entry.availability[key] = slots[key].map(s => ({ from: s.from, to: s.to }));
+  }
+
+  const btn = document.getElementById('submit-btn');
+  const status = document.getElementById('submit-status');
+  btn.disabled = true;
+  status.textContent = 'Saving…';
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(entry),
+      headers: { 'Content-Type': 'text/plain' }
+    });
+    status.textContent = '';
+  } catch (err) {
+    status.textContent = 'Network error — please try again.';
+    btn.disabled = false;
+    return;
+  }
+
+  btn.disabled = false;
+  selectedDays.clear();
+  slots = {};
+  document.getElementById('input-name').value = '';
+  document.querySelectorAll('.day-card').forEach(c => c.classList.remove('selected'));
+  renderSlots();
+  document.getElementById('success-msg').classList.add('show');
+  setTimeout(() => document.getElementById('success-msg').classList.remove('show'), 5000);
+}
+
+// ═══════════════════════════════════════════
+// FETCH RESULTS FROM GOOGLE SHEETS
+// ═══════════════════════════════════════════
+async function fetchAndRenderResults() {
+  document.getElementById('view-top').innerHTML = `<div class="empty-state"><p>Loading responses…</p></div>`;
+  document.getElementById('view-all').innerHTML = '';
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    const data = await res.json();
+    const responses = data.responses || [];
+    renderTopSlots(responses);
+    renderAllResponses(responses);
+  } catch (err) {
+    document.getElementById('view-top').innerHTML = `<div class="empty-state"><div class="big">⚠️</div><p>Could not load responses.<br>Check your internet connection and try again.</p></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════
+// ANALYSIS
+// ═══════════════════════════════════════════
+function toMin(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+function overlaps(a, b) { return a.from < b.to && b.from < a.to; }
+
+function analyzeSlots(responses) {
+  if (!responses || responses.length === 0) return [];
+  const dayMap = {};
+  for (const resp of responses) {
+    for (const [key, windows] of Object.entries(resp.availability)) {
+      if (!dayMap[key]) dayMap[key] = [];
+      for (const w of windows) {
+        dayMap[key].push({ name: resp.name, from: toMin(w.from), to: toMin(w.to) });
+      }
+    }
+  }
+  const candidates = [];
+  for (const [key, intervals] of Object.entries(dayMap)) {
+    const minT = Math.min(...intervals.map(i => i.from));
+    const maxT = Math.max(...intervals.map(i => i.to));
+    for (let t = minT; t + 30 <= maxT; t += 30) {
+      const cand = { from: t, to: t + 30 };
+      const availableNames = new Set();
+      for (const iv of intervals) {
+        if (overlaps(iv, cand)) availableNames.add(iv.name);
+      }
+      candidates.push({ dateKey: key, from: t, to: t+30, count: availableNames.size, names: [...availableNames] });
+    }
+  }
+  candidates.sort((a,b) => b.count - a.count || a.dateKey.localeCompare(b.dateKey) || a.from - b.from);
+  return candidates.slice(0, 10);
+}
+
+function minToStr(m) {
+  const h = Math.floor(m/60), mm = String(m%60).padStart(2,'0');
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12 = h === 0 ? 12 : h > 12 ? h-12 : h;
+  return `${h12}:${mm} ${ampm}`;
+}
+
+// ═══════════════════════════════════════════
+// RENDER RESULTS
+// ═══════════════════════════════════════════
+function renderTopSlots(responses) {
+  const container = document.getElementById('view-top');
+  const candidates = analyzeSlots(responses);
+  const total = responses.length;
+
+  if (total === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="big">📭</div><p>No responses yet.<br>Share the form and come back once people have submitted.</p></div>`;
+    return;
+  }
+
+  const top = candidates.slice(0, 3);
+  const maxCount = top[0]?.count || 1;
+
+  container.innerHTML = `
+    <div class="section-heading">Best available windows<span class="count-badge">${total} response${total!==1?'s':''}</span></div>
+    <div class="result-list">
+      ${top.map((c,i) => {
+        const pct = Math.round((c.count/total)*100);
+        return `<div class="result-card rank-${i+1}">
+          <div class="result-rank">${i+1}</div>
+          <div class="result-info">
+            <div class="result-datetime">${fmtDate(keyToDate(c.dateKey))} · ${minToStr(c.from)} – ${minToStr(c.to)}</div>
+            <div class="result-people">${c.count} of ${total} people · ${c.names.join(', ')}</div>
+          </div>
+          <div class="result-bar-wrap">
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:${(c.count/maxCount)*100}%"></div></div>
+            <div class="result-pct">${pct}%</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${candidates.length > 3 ? `
+    <div style="margin-top:1.5rem">
+      <div class="section-heading">Other options</div>
+      <div class="result-list">
+        ${candidates.slice(3,8).map((c,i) => `
+          <div class="result-card">
+            <div class="result-rank">${i+4}</div>
+            <div class="result-info">
+              <div class="result-datetime">${fmtDate(keyToDate(c.dateKey))} · ${minToStr(c.from)} – ${minToStr(c.to)}</div>
+              <div class="result-people">${c.count} of ${total} · ${c.names.join(', ')}</div>
+            </div>
+            <div class="result-bar-wrap">
+              <div class="result-bar-bg"><div class="result-bar-fill" style="width:${(c.count/total)*100}%"></div></div>
+              <div class="result-pct">${Math.round((c.count/total)*100)}%</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}`;
+}
+
+function renderAllResponses(responses) {
+  const container = document.getElementById('view-all');
+  if (responses.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="big">📭</div><p>No responses yet.</p></div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="section-heading">Individual responses<span class="count-badge">${responses.length}</span></div>
+    <div class="responses-grid">
+      ${responses.map(r => {
+        const slotTags = Object.entries(r.availability).flatMap(([key, windows]) =>
+          windows.map(w => `${fmtDate(keyToDate(key))} ${w.from}–${w.to}`)
+        );
+        const date = new Date(r.submittedAt);
+        return `<div class="response-card">
+          <div class="response-name">${r.name}</div>
+          <div class="response-meta">Submitted ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}</div>
+          <div class="response-slots">${slotTags.map(s => `<span class="response-slot-tag">${s}</span>`).join('')}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════
+function unlockAdmin() {
+  const pw = document.getElementById('admin-password').value;
+  if (pw === ADMIN_PASSWORD) {
+    document.getElementById('admin-lock-screen').style.display = 'none';
+    document.getElementById('admin-panel-content').classList.add('unlocked');
+    renderAdminDays();
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+    document.getElementById('add-day-date').value = dateKey(tomorrow);
+    document.getElementById('admin-error').style.display = 'none';
+  } else {
+    document.getElementById('admin-error').style.display = 'block';
+  }
+}
+
+function lockAdmin() {
+  document.getElementById('admin-password').value = '';
+  document.getElementById('admin-lock-screen').style.display = 'block';
+  document.getElementById('admin-panel-content').classList.remove('unlocked');
+}
+
+function renderAdminDays() {
+  const activeDays = loadActiveDays();
+  document.getElementById('day-count-badge').textContent = `${activeDays.length} day${activeDays.length !== 1 ? 's' : ''}`;
+  const list = document.getElementById('managed-days-list');
+  if (activeDays.length === 0) {
+    list.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:0.75rem 0;">No days configured. Add some below.</div>`;
+    return;
+  }
+  list.innerHTML = activeDays.map(({ key, custom }) => {
+    const d = keyToDate(key);
+    const weekend = isWeekend(d);
+    const badgeHtml = custom
+      ? `<span class="managed-day-badge badge-added">Added</span>`
+      : weekend
+        ? `<span class="managed-day-badge badge-weekend">Weekend</span>`
+        : `<span class="managed-day-badge badge-default">Default</span>`;
+    return `<div class="managed-day-row">
+      <div class="managed-day-info">
+        <div class="managed-day-name">${DAY_NAMES[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()} ${badgeHtml}</div>
+        <div class="managed-day-date">${key}</div>
+      </div>
+      <button class="remove-day-btn" onclick="adminRemoveDay('${key}')">Remove</button>
+    </div>`;
+  }).join('');
+}
+
+function adminRemoveDay(key) {
+  const d = keyToDate(key);
+  if (!confirm(`Remove ${fmtDate(d)} from the form?`)) return;
+  saveActiveDays(loadActiveDays().filter(item => item.key !== key));
+  renderAdminDays();
+  buildWeekGrid();
+  if (selectedDays.has(key)) { selectedDays.delete(key); delete slots[key]; renderSlots(); }
+}
+
+function adminAddDay() {
+  const dateVal = document.getElementById('add-day-date').value;
+  if (!dateVal) { alert('Please pick a date.'); return; }
+  const activeDays = loadActiveDays();
+  if (activeDays.find(d => d.key === dateVal)) { alert('That date is already in the list.'); return; }
+  activeDays.push({ key: dateVal, custom: true });
+  activeDays.sort((a,b) => a.key.localeCompare(b.key));
+  saveActiveDays(activeDays);
+  renderAdminDays();
+  buildWeekGrid();
+  const d = new Date(dateVal + 'T00:00:00');
+  d.setDate(d.getDate()+1);
+  document.getElementById('add-day-date').value = dateKey(d);
+}
+
+// ═══════════════════════════════════════════
+// TAB / VIEW SWITCHING
+// ═══════════════════════════════════════════
+function switchTab(tab, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'results') fetchAndRenderResults();
+}
+
+function showView(view) {
+  document.getElementById('view-top').style.display = view === 'top' ? 'block' : 'none';
+  document.getElementById('view-all').style.display = view === 'all' ? 'block' : 'none';
+  document.getElementById('btn-top').classList.toggle('active', view === 'top');
+  document.getElementById('btn-all').classList.toggle('active', view === 'all');
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+buildWeekGrid();
+</script>
+</body>
+</html>
